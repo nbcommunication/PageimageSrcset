@@ -152,7 +152,7 @@ These are the default set rules that will be used when none are specified, e.g. 
 
 Each set rule should be entered on a new line, in the format `{width}x{height} {inherentwidth}w|{resolution}x`.
 
-Not all arguments are required - you will probably find that specifing the width is sufficient for most cases. Here's a few examples of valid set rules and the sets they generate:
+Not all arguments are required - you will probably find that specifying the width is sufficient for most cases. Here's a few examples of valid set rules and the sets they generate:
 
 Set Rule | Set Generated | Arguments Used
 --- | --- | ---
