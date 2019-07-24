@@ -101,8 +101,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		if(!$this->suffix) $this->suffix = "srcset";
 		
 		// Get and set the portrait options
-		$this->srcsetPortrait = explode(",", str_replace(" ", "", $this->portraitSets));
-		asort($this->srcsetPortrait);
+		$this->srcsetPortrait = $this->getPortraitSets($this->portraitSets);
 		if(!$this->portraitRatio) $this->portraitRatio = "9:16";
 
 		// Set UIkit widths
@@ -188,7 +187,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 *
 	 * `$image->sizes()` accepts two arguments:
 	 * - `sizes` (array): An array of sizes or UIkit classes to process.
-	 * - `portrait` (bool): Append.
+	 * - `portrait` (bool): Prepend portrait mode size.
 	 *
 	 * #pw-hooker
 	 * #pw-hookable
@@ -311,17 +310,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		}
 
 		$sets = [];
-		$portraitSets = $this->srcsetPortrait;
 
 		// Handle portrait variations
 		if($options["portrait"]) {
 
 			// Custom widths passed
-			if(is_array($options["portrait"])) {
-				$portraitSets = $options["portrait"];
+			if(!is_bool($options["portrait"])) {
+				$this->srcsetPortrait = $this->getPortraitSets($options["portrait"]);
 			}
-
-			asort($portraitSets);
 
 			// 9:16 is the default ratio
 			// Landscape ratios will be switched to portrait
@@ -329,7 +325,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$portraitRatio = round((count($r) == 2 ? ($r[0] < $r[1] ? $r[1] / $r[0] : $r[0] / $r[1]) : 1.77866), 6);
 
 			// Create portrait image and add set
-			foreach($portraitSets as $width) {
+			foreach($this->srcsetPortrait as $width) {
 				$rule = "{$width}w";
 				$sets[$rule] = $image->size($width, round($width * $portraitRatio), array_merge([
 					"hidpi" => true,
@@ -337,7 +333,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			}
 
 			$this->logDebug([
-				"widths" => $portraitSets,
+				"widths" => $this->srcsetPortrait,
 				"ratio" => "{$this->portraitRatio} = $portraitRatio",
 			], sprintf($this->_("Portrait mode enabled for %s"), $event->object->basename));
 		}
@@ -350,7 +346,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$cropHeightByRatio = ($cropWidth ? $cropWidth / $ratio : 0);
 
 			// If in portrait mode, skip images smaller thant
-			if($options["portrait"] && $cropWidth && count($portraitSets) && $cropWidth <= end($portraitSets)) continue;
+			if($options["portrait"] && $cropWidth && count($this->srcsetPortrait) && $cropWidth <= end($this->srcsetPortrait)) continue;
 
 			$wider = $imageWidth > $cropWidth;
 			$higher = $imageHeight > ($cropHeight ?: $cropHeightByRatio);
@@ -542,6 +538,21 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 */
 	protected function logDebug($log, $title = "") {
 		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? print_r($log, 1) : $log)) : false;
+	}
+
+	/**
+	 * Get an array of portrait set widths
+	 *
+	 * #pw-internal
+	 *
+	 * @param string|array
+	 * @return array
+	 *
+	 */
+	private function getPortraitSets($sets) {
+		if(!is_array($sets)) $sets = explode(",", str_replace(" ", "", $sets));
+		asort($sets);
+		return $sets;
 	}
 
 	/**
