@@ -39,26 +39,24 @@ $srcset = $image->srcset([
 $srcset = $image->srcset(true);
 
 // Return the srcset using all arguments
-// Custom sizes do not work for widths <= {portraitWidth}px if portrait enabled
 $srcset = $image->srcset("320, 480, 640x480 768w, 1240, 2048 2x", [
-	"portrait" => true,
+	"portrait" => "320, 640",
 ]);
 
 // The set rules above are a demonstration, not a recommendation!
 ```
+**Image variations are only created for set rules which require a smaller image than the `Pageimage` itself. On large sites this may still result in a _lot_ of images being generated. If you have limited storage, please use this module wisely.**
 
 #### Portrait Mode
-In most situations, the ratio of the image does not need to change at different screen sizes. However, images that cover the entire viewport are an obvious exception to this and often the ones that benefit most from srcset implementation.
+In many situations, the ratio of the image does not need to change at different screen sizes. However, images that cover the entire viewport are an exception to this and are often the ones that benefit most from srcset implementation.
 
 The main problem with cover images is that they need to display *landscape* on desktop devices and *portrait* when this orientation is used on mobile and tablet devices.
 
 You can automatically generate portrait images by enabling portrait mode. It is recommended that you use this in combination with [`Pageimage::focus()`](https://processwire.com/api/ref/pageimage/focus/) so that the portrait variations retain the correct subject.
 
-The generated variations are twice the width of the set rule width, with the height determined by the portrait ratio (e.g. 9:16). A set rule width of 320 results in an image 640px x 1138px. 
+The generated variations are HiDPI/Retina versions. Their height is determined by the portrait ratio (e.g. 9:16). Variations are always generated, regardless of whether the original image is smaller. Upscaling is disabled though, so you may find that some variations are actually smaller than they say they are in their filename.
 
-The `sizes` attribute should be used when portrait mode is enabled. `Pageimage::sizes` will return `(orientation: portrait) and (max-width: {portraitWidth}px) 50vw` by default, which handles the use of these images with 2x resolution.
-
-Image variations are only created for set rules which require a smaller image than the `Pageimage` itself. Portrait mode is an exception to this, so it is recommended that you only use this mode on a high resolution image.
+The `sizes` attribute should be used when portrait mode is enabled. `Pageimage::sizes` will return `(orientation: portrait) and (max-width: {maxWidth}px) 50vw` by default, which handles the use of these images for retina devices. The maximum width used in this rule is the largest set width.
 
 ### Pageimage::sizes()
 There is no option to configure default sizes because in most cases `100vw` is all you need, and you do not need to output this anyway as it is inferred when using the `srcset` attribute.
@@ -67,7 +65,7 @@ There is no option to configure default sizes because in most cases `100vw` is a
 // The property
 $sizes = $image->sizes;
 // Returns 100vw in most cases
-// Returns '(orientation: portrait) and (max-width: {portraitWidth}px)50vw' if portrait mode enabled
+// Returns '(orientation: portrait) and (max-width: {maxWidth}px)50vw' if portrait mode enabled
 
 // A method call, using a mixture of integer widths and media query rules
 // Integer widths are treated as a min-width media query rule
@@ -94,7 +92,7 @@ $sizes = $image->sizes([
 
 // Return the portrait size rule
 $sizes = $image->sizes(true);
-// (orientation: portrait) and (max-width: {portraitWidth}px) 50vw
+// (orientation: portrait) and (max-width: {maxWidth}px) 50vw
 
 // The arguments above are a demonstration, not a recommendation!
 ```
@@ -114,7 +112,7 @@ echo $image->render();
 
 // Render an image using custom set rules
 echo $image->render(["srcset" => "480, 1240x640"]);
-// <img src='image.jpg' alt='' srcset='image.480x0.jpg 480w, image.1240x640.jpg 1240w'>
+// <img src='image.jpg' alt='' srcset='image.480x0-srcset.jpg 480w, image.1240x640.jpg 1240w'>
 
 // Render an image using custom set rules and sizes
 // Also use the `markup` argument
@@ -122,7 +120,7 @@ echo $image->render("<img class='image' src='{url}' alt='Image'>", [
 	"srcset" => "480, 1240",
 	"sizes" => [1240 => 50],
 ]);
-// <img class='image' src='image.jpg' alt='Image' srcset='image.480x0.jpg 480w, image.1240x640.jpg 1240w' sizes='(min-width: 1240px) 50vw'>
+// <img class='image' src='image.jpg' alt='Image' srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' sizes='(min-width: 1240px) 50vw'>
 
 // Render an image using custom set rules and sizes
 // Enable uk-img
@@ -131,14 +129,16 @@ echo $image->render([
 	"sizes" => ["uk-child-width-1-2@m"],
 	"uk-img" => true,
 ]);
-// <img src='image.jpg' alt='' data-uk-img data-srcset='image.480x0.jpg 480w, image.1240x640.jpg 320w 1240w' sizes='(min-width: 960px) 50vw'>
+// <img src='image.jpg' alt='' data-uk-img data-srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' sizes='(min-width: 960px) 50vw'>
 
 // Render an image using portrait mode
-// Default rule sets used (320, 480, 640, 960 in this example)
-// Not possible to use portrait mode and custom sets in render()
+// Default rule sets used: 320, 640, 768, 1024, 1366, 1600
+// Portrait widths used: 320, 640, 768
+// Original image is 1000px wide
+// Not possible to use portrait mode and custom sets or portrait widths in render()
 // Sizes attribute automatically added
 echo $image->render(["srcset" => true]);
-// <img src='image.jpg' alt='' srcset='image.640x1138.jpg 320w, image.960x1707.jpg 480w, image.1280x2276.jpg 640w, image.768x512.jpg 960w' sizes='(orientation: portrait) and (max-width: 801px) 50vw'>
+// <img src='image.jpg' alt='' srcset='image.320x569-srcset-hidpi.jpg 320w, image.640x1138-srcset-hidpi.jpg 640w, image.768x1365-srcset-hidpi.jpg 768w, image.jpg 1024w' sizes='(orientation: portrait) and (max-width: 768px) 50vw'>
 ```
 
 ### UIkit Features
@@ -167,10 +167,8 @@ When you save your rules, a preview of the sets generated and an equivalent meth
 
 ### Mobile/Tablet Portrait Images
 
-#### Maximum Width
-Any set rules up to and including this width will have portrait variations generated.
-
-A single pixel is added onto this value at runtime, so 800 is actually evaluted as 801. The default 800 value is somewhat arbitrary, it covers most devices but not the likes of the iPad Pro. This may change after further testing.
+#### Set Widths
+A comma limited list of widths to create HiDPI/Retina portrait variations for. 
 
 #### Crop Ratio
 The portrait ratio that should be used to crop the image. The default of 9:16 should be fine for most circumstances as this is the standard portrait ratio of most devices. However, you can specify something different if you want. If you add a landscape ratio, it will be switched to portrait when used.
@@ -181,6 +179,9 @@ Any crops in the set rules (`{width}x{height}`) are ignored for portrait mode va
 If your website theme uses UIkit, you can pass an array of UIkit width classes to `Pageimage::sizes` to be converted to sizes. The values stored here are used to do this. If you have customised the breakpoints on your theme, you can also customise them here.
 
 Please note that only "1-" widths are evaluated by `Pageimage::sizes`, e.g. `uk-width-2-3` will not work.
+
+### Image Suffix
+This is appended to the name of the images generated by this module and is used to remove old variations if the set rules change. You should not encounter any issues with the default suffix, but if you find that it conflicts with any other functionality on your site, you can set a custom suffix instead.
 
 ### Debug Mode
 When this is enabled, a range of information is logged to **pageimage-srcset**.
