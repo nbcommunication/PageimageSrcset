@@ -1,0 +1,496 @@
+<?php namespace ProcessWire;
+
+/**
+ * Pageimage Srcset
+ *
+ * #pw-summary Provides configurable srcset and sizes properties/methods for Pageimage.
+ *
+ * @copyright 2019 NB Communication Ltd
+ * @license Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ *
+ * @property string $sets
+ * @property int $portraitWidth
+ * @property string $portraitRatio
+ * @property string $ukWidth_s
+ * @property string $ukWidth_m
+ * @property string $ukWidth_l
+ * @property string $ukWidth_xl
+ * @property bool $debug
+ *
+ */
+
+class PageimageSrcset extends WireData implements Module, ConfigurableModule {
+
+	/**
+	 * getModuleInfo is a module required by all modules to tell ProcessWire about them
+	 *
+	 * @return array
+	 *
+	 */
+	public static function getModuleInfo() {
+
+		return [
+			"title" => "Pageimage Srcset",
+			"version" => 001,
+			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
+			"author" => "chriswthomson",
+			"href" => "https://github.com/chriswthomson/PageimageSrcset",
+			"singular" => true,
+			"autoload" => "template!=admin",
+			"icon" => "picture-o",
+			"requires" => "ProcessWire>=3.0.123",
+		];
+	}
+
+	/**
+	 * Pageimage "is portrait" key
+	 *
+	 * @var string
+	 *
+	 */
+	const keyPortrait = "isSrcsetPortrait";
+
+	/**
+	 * An array of `srcset` widths
+	 *
+	 * @var array
+	 *
+	 */
+	protected $srcset = [];
+
+	/**
+	 * Default UIkit widths
+	 *
+	 * @var array
+	 *
+	 */
+	protected $ukWidths = [
+		"s" => 640,
+		"m" => 960,
+		"l" => 1200,
+		"xl" => 1600,
+	];
+
+	/**
+	 * Initialize the module
+	 *
+	 */
+	public function init() {
+
+		// Get and set image srcset widths
+		if($this->defaultSets) {
+			$this->srcset = $this->getSrcset();
+		} else if(!$this->wire("input")->post["defaultSets"]) {
+			$this->error(sprintf($this->_("Please enter a %s configuration."), "srcset"));
+			return;
+		}
+
+		// Defaults
+		if(!$this->portraitWidth) $this->portraitWidth = 800;
+		$this->portraitWidth = $this->portraitWidth + 1;
+		if(!$this->portraitRatio) $this->portraitRatio = "9:16";
+
+		// Set UIkit widths
+		foreach($this->ukWidths as $size => $width) {
+			$this->ukWidths[$size] = $this->wire("sanitizer")->int($this->get("ukWidth_$size") ?: $width);
+		}
+
+		// Debug log if module config loaded
+		if($this->wire("page")->template == "admin") {
+			$this->logDebug($this->srcset, $this->_("Default set rules"));
+			$this->logDebug($this->ukWidths, sprintf($this->_("Default %s widths"), "UIkit"));
+		}
+
+		// Pageimage::srcset
+		$this->addHook("Pageimage::srcset", $this, "getImageSrcset");
+		$this->addHookProperty("Pageimage::srcset", $this, "getImageSrcset");
+
+		// Pageimage::sizes
+		$this->addHook("Pageimage::sizes", $this, "getImageSizes");
+		$this->addHookProperty("Pageimage::sizes", $this, "getImageSizes");
+
+		// Pageimage::render
+		$this->addHookAfter("Pageimage::render", $this, "renderImageSrcset");
+	}
+
+	/**
+	 * When ProcessWire is ready
+	 *
+	 */
+	public function ready() {
+
+		// Insert debug script
+		if($this->debug) {
+			$this->addHookAfter("Page::render", function(HookEvent $event) {
+
+				$config = $this->wire("config");
+				$contentType = $event->object->template->contentType;
+
+				// If not an html page with a <head> element, return
+				if(
+					($contentType && $contentType !== "html") ||
+					stripos($event->return, "</html>") === false ||
+					stripos($event->return, "<head>") === false
+				) {
+					return;
+				}
+
+				// Place <meta> inside the <head>
+				$event->return = str_replace(
+					"<head>",
+					"<head>\n\t" . '<script src="' . $config->urls($this) . $this->className . 'Debug.js"></script>',
+					$event->return
+				);
+			});
+		}
+	}
+
+	/**
+	 * Return the sizes attribute string
+	 *
+	 * `$image->sizes()` accepts two arguments:
+	 * - `sizes` (array): An array of sizes or UIkit classes to process.
+	 * - `portrait` (bool): Creates portrait images for widths <= {portraitWidth}px.
+	 *
+	 * #pw-hooker
+	 * #pw-hookable
+	 *
+	 * @param HookEvent $event
+	 * @return string
+	 *
+	 */
+	public function ___getImageSizes(HookEvent $event) {
+
+		$sanitizer = $this->wire("sanitizer");
+
+		$image = $event->object;
+		$sizes = $event->arguments(0);
+		$portrait = $event->arguments(1);
+		if(is_null($portrait)) $portrait = $image->get(self::keyPortrait) ?: false;
+
+		// Handle shortcuts
+		if(is_bool($sizes)) $portrait = $sizes;
+		if(!is_array($sizes) || empty($sizes)) $sizes = [];
+
+		$rules = [];
+
+		// If full screen add the portrait rule
+		// 50vw as the images are twice the size
+		if($portrait) $rules[0] = "(orientation: portrait) and (max-width: {$this->portraitWidth}px) 50vw";
+
+		// Get sizes
+		if(count($sizes)) {
+			if($this->isArrayAssociative($sizes)) {
+				foreach($sizes as $width => $vw) {
+					$w = $sanitizer->int(preg_replace("/[^0-9.]/", "", $width));
+					$rules[$w] = (is_string($width) ? $width : "(min-width: {$width}px)") . " {$vw}vw";
+				}
+			} else {
+				// From UIkit classes
+				$ukWidths = $this->ukWidths;
+				foreach(["uk-width-1-", "uk-child-width-1-"] as $search) {
+					foreach($sizes as $class) {
+						if(strpos($class, $search) !== false) {
+							$size = strpos($class, "@") !== false ? explode("@", $class)[1] : 0;
+							$width = $size && isset($ukWidths[$size]) ? $ukWidths[$size] : 0;
+							$rules[$width] = ($width ? "(min-width: {$width}px) " : "") .
+								round(100 / $sanitizer->int(str_replace($search, "", $class)), 2) . "vw";
+						}
+					}
+				}
+			}
+		}
+
+		ksort($rules);
+
+		$this->logDebug($rules, sprintf($this->_("Sizes for %s"), $event->object->basename));
+
+		$event->return = count($rules) ? implode(", ", $rules) : "100vw";
+	}
+
+	/**
+	 * Generate srcset images and return its attribute string
+	 *
+	 * `$image->srcset()` accepts two arguments:
+	 * - `srcset` (string|array|bool): The srcset configuration.
+	 * - `options` (array|bool): Options to modify default behaviour:
+	 *   - `portrait` (bool): Creates portrait images for widths <= {portraitWidth}px.
+	 *
+	 * #pw-hooker
+	 * #pw-hookable
+	 *
+	 * @param HookEvent $event
+	 * @return string
+	 *
+	 */
+	public function ___getImageSrcset(HookEvent $event) {
+
+		$sanitizer = $this->wire("sanitizer");
+
+		$image = $event->object;
+		$srcset = $event->arguments(0);
+		$options = $event->arguments(1);
+
+		// Handle shortcuts
+		if(is_bool($options)) $options = ["portrait" => $options];
+		if(!is_array($options)) $options = [];
+		if(!is_array($srcset) && !is_string($srcset)) {
+			if(is_bool($srcset)) $options = ["portrait" => $srcset];
+			$srcset = $this->srcset;
+		}
+
+		// Get srcset config
+		$srcset = $this->getSrcset($srcset);
+
+		// Set default options
+		$options = array_merge([
+			"portrait" => false,
+		], $options);
+
+		// Image Parameters
+		$imageWidth = $image->width;
+		$imageHeight = $image->height;
+		$ratio = $imageWidth / $imageHeight;
+		if($options["portrait"]) $image->set(self::keyPortrait, true);
+
+		// Handle image variations
+		$variation = $image->isVariation($image->basename, ["allowSelf" => true]);
+		if($variation) {
+			// Image is a variation, get original and variant dimensions
+			$image = $image->getOriginal();
+			$imageWidth = $variation["width"];
+			$imageHeight = $variation["height"];
+		}
+
+		$sets = [];
+		$break = false;
+		foreach($srcset as $rule => $dimensions) {
+
+			$cropWidth = $sanitizer->int($dimensions[0]);
+			$cropHeight = isset($dimensions[1]) ? $dimensions[1] : 0;
+
+			if($options["portrait"] && $cropWidth < $this->portraitWidth) {
+
+				// Portrait crop for mobile and tablet, *2 for retina
+				// 9:16 is the default ratio
+				// Landscape ratios will be switched to portrait
+				$r = explode(":", $this->portraitRatio);
+				$portraitRatio = round((count($r) == 2 ? ($r[0] < $r[1] ? $r[1] / $r[0] : $r[0] / $r[1]) : 1.77866), 6);
+				$img = $image->size($cropWidth * 2, round($cropWidth * $portraitRatio * 2));
+
+				$this->logDebug([
+					"set" => "{$cropWidth}x{$cropHeight} $rule",
+					"img" => $img->url,
+					"ratio" => "{$this->portraitRatio} = $portraitRatio",
+				], sprintf($this->_("Portrait mode enabled for %s"), $event->object->basename));
+
+			} else {
+
+				$cropHeightByRatio = ($cropWidth ? $cropWidth / $ratio : 0);
+
+				$wider = $imageWidth > $cropWidth;
+				$higher = $imageHeight > ($cropHeight ?: $cropHeightByRatio);
+
+				// Resize image
+				if(($imageWidth && $imageHeight) && ($wider || $higher) && ($cropWidth || $cropHeight)) {
+					$img = $image->size($cropWidth, $cropHeight);
+				} else if($imageWidth && $wider && $cropWidth) {
+					$img = $image->width($cropWidth);
+				} else if($imageHeight && $higher) {
+					$img = $image->height($cropHeight ?: $cropHeightByRatio);
+				} else {
+					$img = $event->object;
+					// No need for more sets
+					$break = true;
+				}
+			}
+
+			// Add set
+			if(!array_key_exists($rule, $sets)) $sets[$rule] = "$img->url $rule";
+			if($break) break;
+		}
+
+		$this->logDebug($sets, sprintf($this->_("Sets for %s"), $event->object->basename));
+
+		$event->return = count($sets) ? implode(", ", $sets) : false;
+	}
+
+	/**
+	 * Return the srcset array
+	 *
+	 * #pw-internal
+	 *
+	 * @param array|string $sets
+	 * @return array
+	 *
+	 */
+	public function getSets($sets = null) {
+		return isset($sets) ? $this->getSrcset($sets) : $this->srcset;
+	}
+
+	/**
+	 * Extend Pageimage::render
+	 *
+	 * #pw-hooker
+	 * #pw-hookable
+	 *
+	 * @param HookEvent $event
+	 * @return string
+	 * @see Pageimage::render()
+	 *
+	 */
+	public function renderImageSrcset(HookEvent $event) {
+
+		$image = $event->object;
+		$img = $event->return;
+		$markup = $event->arguments(0);
+		$options = $event->arguments(1);
+		if(is_null($options) && is_array($markup)) $options = $markup;
+
+		$attr = [];
+		$apos = strpos($img, '"') === false ? "'" : '"';
+
+		// data-uk-img
+		$ukImg = isset($options["uk-img"]) ? $options["uk-img"] : false;
+		if(is_array($ukImg)) $ukImg = json_encode($ukImg);
+		if($ukImg) {
+			$attr[] = "data-uk-img" . (is_bool($ukImg) ? "" : $apos . $ukImg . $apos);
+		}
+
+		// srcset
+		if(!array_key_exists("srcset", $options) || $options["srcset"] !== false) {
+			$attr[] = ($ukImg ? "data-" : "") . "srcset=" . $apos . $image->srcset(isset($options["srcset"]) ? $options["srcset"] : null) . $apos;
+		}
+
+		// sizes
+		if(isset($options["sizes"]) || $image->get(self::keyPortrait)) {
+			$attr[] = "sizes=" . $apos . $image->sizes($options["sizes"]) . $apos;
+		}
+
+		// Render additional attributes
+		$event->return = rtrim($img, " />") . " " . implode(" ", $attr) . ">";
+	}
+
+	/**
+	 * Return the srcset config array
+	 *
+	 * #pw-internal
+	 *
+	 * @param array|string $sets
+	 * @return array
+	 *
+	 */
+	protected function getSrcset($sets = null) {
+
+		$input = $this->wire("input");
+		$sanitizer = $this->wire("sanitizer");
+
+		// Get sets ready for checking
+		if(is_array($sets)) {
+
+			// No rule checking performed
+			if($this->isArrayAssociative($sets)) return $sets;
+
+		} else {
+
+			$sets = explode("\n", str_replace(",", "\n", (is_string($sets) ? $sets : $this->defaultSets)));
+		}
+
+		$srcset = [];
+		$errors = [];
+		foreach($sets as $line) {
+
+			$line = trim($line);
+			if(empty($line)) continue;
+
+			$parts = explode(" ", $line);
+			if(count($parts) > 2) {
+				// Too many parts in the rule
+				$errors[] = $line;
+				continue;
+			}
+
+			$size = strtolower($parts[0]);
+			$rule = count($parts) == 2 ? strtolower($parts[1]) : null;
+			if(isset($rule) && (strpos($rule, "w") === false && strpos($rule, "x") === false)) {
+				// Invalid Rule
+				$errors[] = $line;
+				continue;
+			}
+
+			$dimensions = explode("x", $size);
+			if(empty($size) || count($dimensions) > 2) {
+				// Too many or not enough dimensions
+				$errors[] = $line;
+				continue;
+			}
+
+			// Sanitize width/height as integers
+			foreach($dimensions as $key => $value) {
+				$int = $sanitizer->int($value);
+				if(strlen($int) !== strlen($value)) {
+					$errors[] = $line;
+					continue 2;
+				}
+				$dimensions[$key] = $int;
+			}
+
+			$width = $dimensions[0];
+			$height = count($dimensions) == 2 ? $dimensions[1] : 0;
+
+			if(!($width + $height)) {
+				// Both dimensions are zero
+				$errors[] = $line;
+				continue;
+			}
+
+			$key = isset($rule) ? $rule : ($width ?: $height) . "w";
+
+			$srcset[$key] = [$width, $height];
+		}
+
+		if(count($errors) && !($input->post["defaultSets"] && count($input->post["defaultSets"]) !== count($srcset))) {
+			// Do not display errors when set rules are initially edited in the module config
+			if($this->wire("page")->template == "admin") {
+				$this->logDebug(implode(", ", $errors), $this->_("Set rule errors"));
+			}
+			foreach($errors as $error) {
+				$this->error(sprintf($this->_("%s is not a valid set rule."), $error));
+			}
+		}
+
+		// Sort sets so that widths are in ascending order
+		// Resolution rules should end up near the end
+		uasort($srcset, function($a, $b) {
+			return $a[0] > $b[0] ? $a[0] <=> $b[0] : $a[0] + $a[1] <=> $b[0] + ($b[1] ? $b[1] : $b[0]);
+		});
+
+		return $srcset;
+	}
+
+	/**
+	 * Log a debug message
+	 *
+	 * @param mixed $log
+	 * @param string $title
+	 * @return bool
+	 *
+	 */
+	protected function logDebug($log, $title = "") {
+		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? print_r($log, 1) : $log)) : false;
+	}
+
+	/**
+	 * Check if an array is associative or sequential
+	 *
+	 * #pw-internal
+	 *
+	 * @param array $array The array to evaluate.
+	 * @return bool
+	 *
+	 */
+	private function isArrayAssociative(array $array) {
+		if(array() === $array) return false;
+		return array_keys($array) !== range(0, count($array) - 1);
+	}
+}
