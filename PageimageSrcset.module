@@ -15,6 +15,7 @@
  * @property int $ukWidth_m
  * @property int $ukWidth_l
  * @property int $ukWidth_xl
+ * @property bool $removeVariations
  * @property string $suffix
  * @property bool $debug
  * 
@@ -54,6 +55,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	const keyPortrait = "isSrcsetPortrait";
 
 	/**
+	 * An array of debug messages
+	 *
+	 * @var array
+	 *
+	 */
+	protected $debugLog = [];
+
+	/**
 	 * An array of `srcset` widths
 	 *
 	 * @var array
@@ -88,8 +97,9 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 */
 	public function init() {
 
+		$input = $this->wire("input");
 		$isAdmin = $this->wire("page")->template == "admin";
-		$newSets = $this->wire("input")->post["defaultSets"];
+		$newSets = $input->post->textarea("defaultSets");
 
 		// Get and set image srcset widths
 		if($this->defaultSets) {
@@ -111,32 +121,32 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$this->ukWidths[$size] = $this->wire("sanitizer")->int($this->get("ukWidth_$size") ?: $width);
 		}
 
-		// Debug log if module config loaded
+		// If module config loaded
 		if($isAdmin) {
 
-			$this->logDebug($this->srcset, $this->_("Default set rules"));
-			$this->logDebug($this->ukWidths, sprintf($this->_("Default %s widths"), "UIkit"));
+			if($newSets && trim($newSets) !== trim($this->defaultSets)) {
+				$this->logDebug($this->srcset, $this->_("Default Set Rules"));
+				$this->logDebug($this->ukWidths, sprintf($this->_("Default %s widths"), "UIkit"));
+			}
 
 			// Remove srcset variations if sets have changed
-			if($newSets && strlen($newSets) < strlen($this->defaultSets)) {
+			if($input->post->bool("removeVariations")) {
 
-				$r = [];
-				foreach($this->wire("fields")->find("type=FieldtypeImage") as $f) {
-					foreach($this->wire("pages")->find("$f.count>0,include=all") as $p) {
-						$p->of(false);
-						foreach($p->get($f->name) as $image) {
-							$v = count($image->getVariations(["info" => true, "suffix" => $this->suffix]));
-							if($v) {
-								if(!array_key_exists($p->id, $r)) $r[$p->id] = [];
-								$r[$p->id][$image->basename] = $v;
-								$image->removeVariations(["suffix" => $this->suffix]);
-							}
+				$c = 0;
+				$dirs = new \DirectoryIterator($this->wire("config")->paths->files);
+				foreach($dirs as $dir) {
+					if($dir->isFile() || $dir->isDot()) continue;
+					$dir = new \DirectoryIterator($dir->getPathname());
+					foreach($dir as $file) {
+						if(strpos($file->getFilename(), "-{$this->suffix}") !== false) {
+							$c++;
+							$this->wire("files")->unlink($file->getPathname());
 						}
-						$p->of(true);
 					}
 				}
 
-				if(count($r)) $this->logDebug($r, $this->_("Variations removed"));
+				$input->post->removeVariations = 0;
+				if($c) $this->logDebug($c, $this->_("Variations removed"));
 			}
 		}
 
@@ -162,8 +172,9 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		if($this->debug) {
 			$this->addHookAfter("Page::render", function(HookEvent $event) {
 
+				$page = $event->object;
 				$config = $this->wire("config");
-				$contentType = $event->object->template->contentType;
+				$contentType = $page->template->contentType;
 
 				// If not an html page with a <head> element, return
 				if(
@@ -172,6 +183,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 					stripos($event->return, "<head>") === false
 				) {
 					return;
+				}
+
+				// Debug log
+				if(count($this->debugLog)) {
+					$this->logDebug([
+						"page" => "$page->title ($page->id)",
+						"debug" => $this->debugLog,
+					]);
 				}
 
 				// Place <meta> inside the <head>
@@ -244,7 +263,12 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		ksort($rules);
 
-		$this->logDebug($rules, sprintf($this->_("Sizes for %s"), $event->object->basename));
+		// Add to debug log
+		if($this->debug) {
+			$name = $event->object->basename;
+			if(!array_key_exists($name, $this->debugLog)) $this->debugLog[$name] = [];
+			$this->debugLog[$name]["sizes"] = $rules;
+		}
 
 		$event->return = count($rules) ? implode(", ", $rules) : "100vw";
 	}
@@ -269,6 +293,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$sanitizer = $this->wire("sanitizer");
 
 		$image = $event->object;
+		$name = $image->basename;
 		$srcset = $event->arguments(0);
 		$options = $event->arguments(1);
 		$sizeOptions = [
@@ -303,13 +328,16 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		}
 
 		// Handle image variations
-		$variation = $image->isVariation($image->basename, ["allowSelf" => true]);
+		$variation = $image->isVariation($name, ["allowSelf" => true]);
 		if($variation) {
 			// Image is a variation, get original and variant dimensions
 			$image = $image->getOriginal();
 			$imageWidth = $variation["width"];
 			$imageHeight = $variation["height"];
 		}
+
+		// Add entry to debug log
+		if($this->debug && !array_key_exists($name, $this->debugLog)) $this->debugLog[$name] = [];
 
 		$sets = [];
 
@@ -334,10 +362,13 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 				], $sizeOptions))->url . " $rule";
 			}
 
-			$this->logDebug([
-				"widths" => $this->srcsetPortrait,
-				"ratio" => "{$this->portraitRatio} = $portraitRatio",
-			], sprintf($this->_("Portrait mode enabled for %s"), $event->object->basename));
+			// Add to debug log
+			if($this->debug) {
+				if(!array_key_exists("portraitRatio", $this->debugLog)) {
+					$this->debugLog["portraitRatio"] = "{$this->portraitRatio} = $portraitRatio";
+				}
+				$this->debugLog[$name]["portrait"] = $this->srcsetPortrait;
+			}
 		}
 		
 		$break = false;
@@ -371,7 +402,13 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			if($break) break;
 		}
 
-		$this->logDebug($sets, sprintf($this->_("Sets for %s"), $event->object->basename));
+		// Add to debug log
+		if($this->debug) {
+			$this->debugLog[$name]["srcset"] = [];
+			foreach($sets as $set) {
+				$this->debugLog[$name]["srcset"][] = str_replace($image->pagefiles->url, "", $set);
+			}
+		}
 
 		$event->return = count($sets) ? implode(", ", $sets) : false;
 	}
@@ -427,6 +464,13 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$sizes = isset($options["srcset"]) || $image->get(self::keyPortrait);
 		if($sizes) {
 			$attr[] = "sizes=" . $apos . $image->sizes($sizes) . $apos;
+		}
+
+		// Add to debug log
+		if($this->debug) {
+			$name = $image->basename;
+			if(!array_key_exists($name, $this->debugLog)) $this->debugLog[$name] = [];
+			$this->debugLog[$name]["render"] = true;
 		}
 
 		// Render additional attributes
@@ -539,7 +583,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected function logDebug($log, $title = "") {
-		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? print_r($log, 1) : $log)) : false;
+		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? json_encode($log, 1) : $log)) : false;
 	}
 
 	/**
