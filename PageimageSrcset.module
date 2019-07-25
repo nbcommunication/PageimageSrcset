@@ -17,6 +17,8 @@
  * @property int $ukWidth_xl
  * @property string $suffix
  * @property bool $debug
+ * 
+ * @todo are variations removed from repeater fields?
  *
  */
 
@@ -116,7 +118,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$this->logDebug($this->ukWidths, sprintf($this->_("Default %s widths"), "UIkit"));
 
 			// Remove srcset variations if sets have changed
-			if($newSets && $newSets !== $this->defaultSets) {
+			if($newSets && $this->defaultSets && $newSets !== $this->defaultSets) {
 
 				$r = [];
 				foreach($this->wire("fields")->find("type=FieldtypeImage") as $f) {
