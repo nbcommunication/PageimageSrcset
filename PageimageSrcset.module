@@ -376,21 +376,21 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 			$cropWidth = $sanitizer->int($dimensions[0]);
 			$cropHeight = isset($dimensions[1]) ? $dimensions[1] : 0;
-			$cropHeightByRatio = ($cropWidth ? $cropWidth / $ratio : 0);
+			$cropHeightInfer = $cropHeight ?: ($cropWidth ? ($imageWidth ? $cropWidth / $ratio : $cropWidth) : $cropWidth);
 
-			// If in portrait mode, skip images smaller thant
+			// If in portrait mode, skip images smaller than the largest portrait width
 			if($options["portrait"] && $cropWidth && count($this->srcsetPortrait) && $cropWidth <= end($this->srcsetPortrait)) continue;
 
 			$wider = $imageWidth > $cropWidth;
-			$higher = $imageHeight > ($cropHeight ?: $cropHeightByRatio);
+			$higher = $imageHeight > $cropHeightInfer;
 
 			// Resize image
 			if(($imageWidth && $imageHeight) && ($wider || $higher) && ($cropWidth || $cropHeight)) {
-				$img = $image->size($cropWidth, $cropHeight, $sizeOptions);
+				$img = $image->size($cropWidth, $cropHeightInfer, $sizeOptions);
 			} else if($imageWidth && $wider && $cropWidth) {
 				$img = $image->width($cropWidth, $sizeOptions);
 			} else if($imageHeight && $higher) {
-				$img = $image->height(($cropHeight ?: $cropHeightByRatio), $sizeOptions);
+				$img = $image->height($cropHeightInfer, $sizeOptions);
 			} else {
 				$img = $event->object;
 				// No need for more sets
