@@ -118,7 +118,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$this->logDebug($this->ukWidths, sprintf($this->_("Default %s widths"), "UIkit"));
 
 			// Remove srcset variations if sets have changed
-			if(strlen($newSets) < strlen($this->defaultSets)) {
+			if($newSets && strlen($newSets) < strlen($this->defaultSets)) {
 
 				$r = [];
 				foreach($this->wire("fields")->find("type=FieldtypeImage") as $f) {
