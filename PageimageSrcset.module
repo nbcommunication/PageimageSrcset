@@ -35,7 +35,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 002,
+			"version" => 003,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
@@ -61,6 +61,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected $debugLog = [];
+
+	/**
+	 * Deploy mode
+	 *
+	 * @var bool
+	 *
+	 */
+	protected $deploy = true;
 
 	/**
 	 * An array of `srcset` widths
@@ -150,6 +158,11 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			}
 		}
 
+		// If debug mode switched on, only deploy for the superuser
+		if($this->debug && !$this->wire("user")->isSuperUser()) {
+			$this->deploy = false;
+		}
+
 		// Pageimage::srcset
 		$this->addHook("Pageimage::srcset", $this, "getImageSrcset");
 		$this->addHookProperty("Pageimage::srcset", $this, "getImageSrcset");
@@ -159,7 +172,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$this->addHookProperty("Pageimage::sizes", $this, "getImageSizes");
 
 		// Pageimage::render
-		$this->addHookAfter("Pageimage::render", $this, "renderImageSrcset");
+		if($this->deploy) $this->addHookAfter("Pageimage::render", $this, "renderImageSrcset");
 	}
 
 	/**
@@ -270,7 +283,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			$this->debugLog[$name]["sizes"] = $rules;
 		}
 
-		$event->return = count($rules) ? implode(", ", $rules) : "100vw";
+		$event->return = $this->deploy ? (count($rules) ? implode(", ", $rules) : "100vw") : "";
 	}
 
 	/**
@@ -410,7 +423,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			}
 		}
 
-		$event->return = count($sets) ? implode(", ", $sets) : false;
+		$event->return = count($sets) && $this->deploy ? implode(", ", $sets) : "";
 	}
 
 	/**
