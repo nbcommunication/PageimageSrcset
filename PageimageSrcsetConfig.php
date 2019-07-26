@@ -192,7 +192,7 @@ class PageimageSrcsetConfig extends ModuleConfig {
 			"type" => "checkbox",
 			"name" => "debug",
 			"label" => $this->_("Debug Mode"),
-			"notes" => $this->_("When enabled, error messages and other useful information will be logged.") .
+			"notes" => $this->_("When enabled, error messages and other useful information will be logged, and only the superuser account will see this module's output.") .
 				"\n" . sprintf(
 					$this->_('%1$s will also be inserted inside the %2$s. This will %3$s %4$s data when the %5$s event is fired.'),
 					"`PageimageSrcsetDebug.js`",
