@@ -190,6 +190,8 @@ When this is enabled, a range of information is logged to **pageimage-srcset**.
 
 The browser will always use the highest resolution image it has loaded or has cached. You may need to disable browser caching to determine whether your set rules are working, and it makes sense to work from a small screen size and up. If you do it the other way, the browser is going to continue to use the higher resolution image it loaded first.
 
+Debug mode will also limit the features provided by this module to the superuser account. Please remember to switch it off in production!
+
 ## UIkit Features
 This module implements some additional features that are tailored towards UIkit being used as the front-end theme framework, but this is not required to use the module. 
 
