@@ -182,7 +182,8 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	public function ready() {
 
 		// Insert debug script
-		if($this->debug) {
+		if($this->debug && $this->deploy) {
+			
 			$this->addHookAfter("Page::render", function(HookEvent $event) {
 
 				$page = $event->object;
