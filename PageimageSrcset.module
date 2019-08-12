@@ -47,6 +47,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * A blank pixel for using as a placeholder
+	 *
+	 * @var string
+	 *
+	 */
+	const blankPixel = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
+
+	/**
 	 * Pageimage "is portrait" key
 	 *
 	 * @var string
@@ -466,7 +474,9 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$ukImg = isset($options["uk-img"]) ? $options["uk-img"] : false;
 		if(is_array($ukImg)) $ukImg = json_encode($ukImg);
 		if($ukImg) {
-			$attr[] = "data-uk-img" . (is_bool($ukImg) ? "" : $apos . $ukImg . $apos);
+			$attr[] = "data-uk-img" . (is_bool($ukImg) ? "" : "=" . $apos . $ukImg . $apos);
+			$attr[] = "src=" . $apos . self::blankPixel . $apos;
+			$img = str_replace(" src=", " data-src=", $img);
 		}
 
 		// srcset
@@ -477,7 +487,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		// sizes
 		$sizes = isset($options["srcset"]) || $image->get(self::keyPortrait);
 		if($sizes) {
-			$attr[] = "sizes=" . $apos . $image->sizes($sizes) . $apos;
+			$attr[] = ($ukImg ? "data-" : "") . "sizes=" . $apos . $image->sizes($sizes) . $apos;
 		}
 
 		// Add to debug log
