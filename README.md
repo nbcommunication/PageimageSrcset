@@ -101,7 +101,11 @@ $sizes = $image->sizes(true);
 This module extends the options available to this method with:
 - `srcset`: When the module is installed, this will always be added, unless set to `false`. Any values in the formats described above can be passed.
 - `sizes`: Only used if specified. Any values in the formats described above can be passed.
-- `uk-img`: If passed, as either true or as a [valid uk-img value](https://getuikit.com/docs/image#component-options), then this attribute will be added. The `srcset` attribute will also become `data-srcset`.
+- `uk-img`: If passed, as either true or as a [valid uk-img value](https://getuikit.com/docs/image#component-options), then this attribute will be added. The following also happens:
+	- The `src` attribute becomes `data-src` to enable lazy loading.
+	- The `src` attribute is re-added with a blank placeholder `data:image/gif`.
+	- The `srcset` attribute becomes `data-srcset`.
+	- The `sizes` attribute becomes `data-sizes`.
 
 Please refer to the [API Reference](https://processwire.com/api/ref/pageimage/render/) for more information about this method.
 
@@ -129,7 +133,7 @@ echo $image->render([
 	"sizes" => ["uk-child-width-1-2@m"],
 	"uk-img" => true,
 ]);
-// <img src='image.jpg' alt='' data-uk-img data-srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' sizes='(min-width: 960px) 50vw'>
+// <img data-src='image.jpg' alt='' src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==' data-uk-img data-srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' data-sizes='(min-width: 960px) 50vw'>
 
 // Render an image using portrait mode
 // Default rule sets used: 320, 640, 768, 1024, 1366, 1600
