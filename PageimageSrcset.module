@@ -487,7 +487,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		// sizes
 		$sizes = isset($options["srcset"]) || $image->get(self::keyPortrait);
 		if($sizes) {
-			$attr[] = ($ukImg ? "data-" : "") . "sizes=" . $apos . $image->sizes($sizes) . $apos;
+			$attr[] = "sizes=" . $apos . $image->sizes($sizes) . $apos;
 		}
 
 		// Add to debug log
