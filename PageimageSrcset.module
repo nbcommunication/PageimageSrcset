@@ -35,7 +35,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 003,
+			"version" => 004,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
