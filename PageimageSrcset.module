@@ -18,8 +18,6 @@
  * @property bool $removeVariations
  * @property string $suffix
  * @property bool $debug
- * 
- * @todo are variations removed from repeater fields?
  *
  */
 
@@ -35,7 +33,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 006,
+			"version" => 007,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
@@ -488,7 +486,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		// sizes
 		$sizes = isset($options["srcset"]) || $image->get(self::keyPortrait);
 		if($sizes) {
-			$attr[] = "sizes=" . $apos . $image->sizes($sizes) . $apos;
+			$attr[] = ($ukImg ? "data-" : "") . "sizes=" . $apos . $image->sizes($sizes) . $apos;
 		}
 
 		// Add to debug log
