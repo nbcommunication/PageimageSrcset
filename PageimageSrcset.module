@@ -484,8 +484,9 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		}
 
 		// srcset
-		if(!array_key_exists("srcset", $options) || $options["srcset"] !== false) {
-			$attr[] = ($ukImg ? "data-" : "") . "srcset=" . $apos . $image->srcset(isset($options["srcset"]) ? $options["srcset"] : null) . $apos;
+		$hasSrcsetOptions = isset($options["srcset"]);
+		if(!$hasSrcsetOptions || ($hasSrcsetOptions && $options["srcset"] !== false)) {
+			$attr[] = ($ukImg ? "data-" : "") . "srcset=" . $apos . $image->srcset($hasSrcsetOptions ? $options["srcset"] : null) . $apos;
 		}
 
 		// sizes
