@@ -85,7 +85,7 @@ class PageimageSrcsetConfig extends ModuleConfig {
 			"name" => "defaultSets",
 			"label" => $this->_("Set Rules"),
 			"placeholder" => $setRule,
-			"required" => true,
+			"required" => !$this->wire("input")->post->bool("uninstall"),
 			"notes" => $this->_("Each set rule should be entered on a new line."),
 			"icon" => "arrows-alt",
 			"rows" => substr_count($preview, "\n"), // Adjust the textarea based on preview

@@ -33,7 +33,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 007,
+			"version" => 100,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
@@ -118,7 +118,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		// Get and set image srcset widths
 		if($this->defaultSets) {
 			$this->srcset = $this->getSrcset();
-		} else if(!$newSets && $isAdmin) {
+		} else if(!$newSets && $isAdmin && !$input->post->bool("uninstall")) {
 			$this->error(sprintf($this->_("Please enter a %s configuration."), "srcset"));
 			return;
 		}
@@ -338,10 +338,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			"portrait" => false,
 		], $options);
 
+		if(in_array($options["portrait"], ["true", "false"])) {
+			$options["portrait"] = (bool) $options["portrait"];
+		}
+
 		// Image Parameters
 		$imageWidth = $image->width;
 		$imageHeight = $image->height;
-		$ratio = $imageWidth / $imageHeight;
+		$ratio = $imageWidth && $imageHeight ? $imageWidth / $imageHeight : 1;
 
 		if($options["portrait"]) {
 			// Set Pageimage boolean, for later use in sizes if needbe
@@ -465,6 +469,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$markup = $event->arguments(0);
 		$options = $event->arguments(1);
 		if(is_null($options) && is_array($markup)) $options = $markup;
+		if(!is_array($options)) $options = [];
 
 		$attr = [];
 		$apos = strpos($img, '"') === false ? "'" : '"';
@@ -606,7 +611,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected function logDebug($log, $title = "") {
-		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? json_encode($log, 1) : $log)) : false;
+		return $this->debug ? $this->log(($title ? "$title: " : "") . (is_array($log) ? json_encode($log) : $log)) : false;
 	}
 
 	/**
