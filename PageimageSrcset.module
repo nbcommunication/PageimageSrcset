@@ -5,7 +5,7 @@
  *
  * #pw-summary Provides configurable srcset and sizes properties/methods for Pageimage.
  *
- * @copyright 2019 NB Communication Ltd
+ * @copyright 2020 NB Communication Ltd
  * @license Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  * @property string $sets
@@ -33,7 +33,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 100,
+			"version" => 101,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
@@ -337,6 +337,10 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		$options = array_merge([
 			"portrait" => false,
 		], $options);
+
+		if(isset($options["upscaling"])) {
+			$sizeOptions["upscaling"] = $options["upscaling"];
+		}
 
 		if(in_array($options["portrait"], ["true", "false"])) {
 			$options["portrait"] = (bool) $options["portrait"];
