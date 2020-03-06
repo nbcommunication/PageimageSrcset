@@ -5,7 +5,7 @@
  *
  * #pw-summary Provides configurable srcset and sizes properties/methods for Pageimage.
  *
- * @copyright 2019 NB Communication Ltd
+ * @copyright 2020 NB Communication Ltd
  * @license Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  * @property string $sets
@@ -33,7 +33,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 
 		return [
 			"title" => "Pageimage Srcset",
-			"version" => 100,
+			"version" => 101,
 			"summary" => "Provides configurable srcset and sizes properties/methods for Pageimage.",
 			"author" => "chriswthomson",
 			"href" => "https://github.com/chriswthomson/PageimageSrcset",
@@ -338,6 +338,10 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 			"portrait" => false,
 		], $options);
 
+		if(isset($options["upscaling"])) {
+			$sizeOptions["upscaling"] = $options["upscaling"];
+		}
+
 		if(in_array($options["portrait"], ["true", "false"])) {
 			$options["portrait"] = (bool) $options["portrait"];
 		}
@@ -484,13 +488,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 		}
 
 		// srcset
-		$hasSrcsetOptions = isset($options["srcset"]);
-		if(!$hasSrcsetOptions || ($hasSrcsetOptions && $options["srcset"] !== false)) {
-			$attr[] = ($ukImg ? "data-" : "") . "srcset=" . $apos . $image->srcset($hasSrcsetOptions ? $options["srcset"] : null) . $apos;
+		$hasSrcsetOption = isset($options["srcset"]);
+		if(!$hasSrcsetOption || ($hasSrcsetOption && $options["srcset"] !== false)) {
+			$attr[] = ($ukImg ? "data-" : "") . "srcset=" . $apos . $image->srcset($hasSrcsetOption ? $options["srcset"] : null) . $apos;
 		}
 
 		// sizes
-		$sizes = isset($options["srcset"]) || $image->get(self::keyPortrait);
+		$sizes = isset($options["sizes"]) ? $options["sizes"] : 
+			($hasSrcsetOption && is_bool($options["srcset"]) ? $options["srcset"] : (bool) $image->get(self::keyPortrait));
 		if($sizes) {
 			$attr[] = ($ukImg ? "data-" : "") . "sizes=" . $apos . $image->sizes($sizes) . $apos;
 		}

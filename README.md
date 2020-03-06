@@ -200,7 +200,7 @@ Debug mode will also limit the features provided by this module to the superuser
 This module implements some additional features that are tailored towards UIkit being used as the front-end theme framework, but this is not required to use the module. 
 
 ## Installation
-1. Download the [zip file](https://github.com/chriswthomson/PageimageSrcset/archive/master.zip) at Github or clone the repo into your `site/modules` directory.
+1. Download the [zip file](https://github.com/nbcommunication/PageimageSrcset/archive/master.zip) at Github or clone the repo into your `site/modules` directory.
 2. If you downloaded the zip file, extract it in your `sites/modules` directory.
 3. In your admin, go to Modules > Refresh, then Modules > New, then click on the Install button for this module.
 
