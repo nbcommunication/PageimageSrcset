@@ -1,7 +1,7 @@
 /**
  * Pageimage Srcset Debug JS
  *
- * @copyright 2019 NB Communication Ltd
+ * @copyright 2020 NB Communication Ltd
  * @license Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */
