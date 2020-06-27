@@ -15,41 +15,43 @@ window.addEventListener("resize", PageimageSrcsetDebounce(PageimageSrcsetDebug, 
 function PageimageSrcsetDebug() {
 
 	setTimeout(function() {
+
 		var srcsets = document.querySelectorAll("[srcset], [data-srcset]");
 		if(srcsets.length) {
-	
-			var debug = {},
-				images = [],
-				nodes = [];
-			
-			for(i = 0; i < srcsets.length; i++) {
 
-				var element = srcsets[i],
-					isImg = element.nodeName == "IMG",
-					srcset = element.getAttribute(isImg && element.hasAttribute("srcset") ? "srcset" : element.dataset.srcset),
-					data = {
-						src: (isImg ? 
-							element.currentSrc : 
-							element.style.backgroundImage.replace('url("', "").replace('")', "")
-						),
-						node: element.nodeName.toLowerCase(),
-						id: element.id,
-						alt: element.getAttribute("alt"),
-						srcset: (srcset ? srcset.split(", ") : null),
-						sizes: element.getAttribute((isImg && element.hasAttribute("sizes") ? "sizes" : element.dataset.sizes))
-					};
-	
+			var debug = {};
+			var images = [];
+			var nodes = [];
+
+			var n = srcsets.length;
+			for(i = 0; i < n; i++) {
+
+				var element = srcsets[i];
+				var isImg = element.nodeName == "IMG";
+				var srcset = element.getAttribute(isImg && element.hasAttribute("srcset") ? "srcset" : element.dataset.srcset);
+				var data = {
+					src: (isImg ?
+						element.currentSrc :
+						element.style.backgroundImage.replace('url("', "").replace('")', "")
+					),
+					node: element.nodeName.toLowerCase(),
+					id: element.id,
+					alt: element.getAttribute("alt"),
+					srcset: (srcset ? srcset.split(", ") : null),
+					sizes: element.getAttribute((isImg && element.hasAttribute("sizes") ? "sizes" : element.dataset.sizes))
+				};
+
 				if(isImg) {
 					images.push(data);
 				} else {
 					nodes.push(data);
 				}
 			}
-	
+
 			if(images.length) debug["images"] = images;
 			if(nodes.length) debug["nodes"] = nodes;
 			debug["screen"] = window.innerWidth + "px" + " × " + window.innerHeight + "px";
-			
+
 			console.log("PageimageSrcset Debug", debug);
 		}
 	}, 512)

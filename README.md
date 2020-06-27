@@ -14,33 +14,33 @@ $srcset = $image->srcset;
 
 // A method call, using a set rules string
 // Delimiting with a newline (\n) would also work, but not as readable
-$srcset = $image->srcset("320, 480, 640x480 768w, 1240, 2048 2x");
+$srcset = $image->srcset('320, 480, 640x480 768w, 1240, 2048 2x');
 
 // The same as above but using an indexed/sequential array
 $srcset = $image->srcset([
-	"320",
-	"480",
-	"640x480 768w",
-	"1240",
-	"2048 2x",
+	'320',
+	'480',
+	'640x480 768w',
+	'1240',
+	'2048 2x',
 ]);
 
 // The same as above but using an associative array
 // No rule checking is performed
 $srcset = $image->srcset([
-	"320w" => [320],
-	"480w" => [480],
-	"768w" => [640, 480],
-	"1240w" => [1240],
-	"2x" => [2048],
+	'320w' => [320],
+	'480w' => [480],
+	'768w' => [640, 480],
+	'1240w' => [1240],
+	'2x' => [2048],
 ]);
 
 // Use the default set rules with portrait images generated for mobile/tablet devices
 $srcset = $image->srcset(true);
 
 // Return the srcset using all arguments
-$srcset = $image->srcset("320, 480, 640x480 768w, 1240, 2048 2x", [
-	"portrait" => "320, 640",
+$srcset = $image->srcset('320, 480, 640x480 768w, 1240, 2048 2x', [
+	'portrait' => '320, 640',
 ]);
 
 // The set rules above are a demonstration, not a recommendation!
@@ -71,22 +71,22 @@ $sizes = $image->sizes;
 // Integer widths are treated as a min-width media query rule
 $sizes = $image->sizes([
 	480 => 50,
-	"(orientation: portrait) and (max-width: 640px)" => 100,
+	'(orientation: portrait) and (max-width: 640px)' => 100,
 	960 => 25,
 ]);
 // (min-width: 480px) 50vw, (orientation: portrait) and (max-width: 640px) 100vw, (min-width: 960px) 25vw
 
 // Determine widths by UIkit 'child-width' classes
 $sizes = $image->sizes([
-	"uk-child-width-1-2@s",
-	"uk-child-width-1-3@l",
+	'uk-child-width-1-2@s',
+	'uk-child-width-1-3@l',
 ]);
 // (min-width: 640px) 50vw, (min-width: 1200px) 33.33vw
 
 // Determine widths by UIkit 'width' classes
 $sizes = $image->sizes([
-	"uk-width-1-2@m",
-	"uk-width-1-3@xl",
+	'uk-width-1-2@m',
+	'uk-width-1-3@xl',
 ]);
 // (min-width: 960px) 50vw, (min-width: 1600px) 33.33vw
 
@@ -115,23 +115,23 @@ echo $image->render();
 // <img src='image.jpg' alt='' srcset='{default set rules}'>
 
 // Render an image using custom set rules
-echo $image->render(["srcset" => "480, 1240x640"]);
+echo $image->render(['srcset' => '480, 1240x640']);
 // <img src='image.jpg' alt='' srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w'>
 
 // Render an image using custom set rules and sizes
 // Also use the `markup` argument
-echo $image->render("<img class='image' src='{url}' alt='Image'>", [
-	"srcset" => "480, 1240",
-	"sizes" => [1240 => 50],
+echo $image->render('<img class="image" src="{url}" alt="Image">', [
+	'srcset' => '480, 1240',
+	'sizes' => [1240 => 50],
 ]);
 // <img class='image' src='image.jpg' alt='Image' srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' sizes='(min-width: 1240px) 50vw'>
 
 // Render an image using custom set rules and sizes
 // Enable uk-img
 echo $image->render([
-	"srcset" => "480, 1240",
-	"sizes" => ["uk-child-width-1-2@m"],
-	"uk-img" => true,
+	'srcset' => '480, 1240',
+	'sizes' => ['uk-child-width-1-2@m'],
+	'uk-img' => true,
 ]);
 // <img data-src='image.jpg' alt='' src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==' data-uk-img data-srcset='image.480x0-srcset.jpg 480w, image.1240x640-srcset.jpg 1240w' data-sizes='(min-width: 960px) 50vw'>
 
@@ -141,7 +141,7 @@ echo $image->render([
 // Original image is 1000px wide
 // Not possible to use portrait mode and custom sets or portrait widths in render()
 // Sizes attribute automatically added
-echo $image->render(["srcset" => true]);
+echo $image->render(['srcset' => true]);
 // <img src='image.jpg' alt='' srcset='image.320x569-srcset-hidpi.jpg 320w, image.640x1138-srcset-hidpi.jpg 640w, image.768x1365-srcset-hidpi.jpg 768w, image.jpg 1024w' sizes='(orientation: portrait) and (max-width: 768px) 50vw'>
 ```
 
@@ -169,7 +169,7 @@ When you save your rules, a preview of the sets generated and an equivalent meth
 ### Portrait Mode
 
 #### Set Widths
-A comma limited list of widths to create HiDPI/Retina portrait variations for. 
+A comma limited list of widths to create HiDPI/Retina portrait variations for.
 
 #### Crop Ratio
 The portrait ratio that should be used to crop the image. The default of 9:16 should be fine for most circumstances as this is the standard portrait ratio of most devices. However, you can specify something different if you want. If you add a landscape ratio, it will be switched to portrait when used.
@@ -190,14 +190,14 @@ You will see this field when **Remove Variations** is checked. The value is appe
 ### Debug Mode
 When this is enabled, a range of information is logged to **pageimage-srcset**.
 
-`PageimageSrcsetDebug.js` is also added to the `<head>` of your HTML pages. This will `console.log` a range of information about the images and nodes  using srcset on your page after a `window.onresize` event is triggered. This can assist you in debugging your implementation. 
+`PageimageSrcsetDebug.js` is also added to the `<head>` of your HTML pages. This will `console.log` a range of information about the images and nodes  using srcset on your page after a `window.onresize` event is triggered. This can assist you in debugging your implementation.
 
 The browser will always use the highest resolution image it has loaded or has cached. You may need to disable browser caching to determine whether your set rules are working, and it makes sense to work from a small screen size and up. If you do it the other way, the browser is going to continue to use the higher resolution image it loaded first.
 
 Debug mode will also limit the features provided by this module to the superuser account. Please remember to switch it off in production!
 
 ## UIkit Features
-This module implements some additional features that are tailored towards UIkit being used as the front-end theme framework, but this is not required to use the module. 
+This module implements some additional features that are tailored towards UIkit being used as the front-end theme framework, but this is not required to use the module.
 
 ## Installation
 1. Download the [zip file](https://github.com/nbcommunication/PageimageSrcset/archive/master.zip) at Github or clone the repo into your `site/modules` directory.
