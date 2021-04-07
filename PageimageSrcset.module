@@ -212,7 +212,7 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 					]);
 				}
 
-				// Place <meta> inside the <head>
+				// Place <script> inside the <head>
 				$event->return = str_replace(
 					'<head>',
 					"<head>\n\t" . '<script src="' . $config->urls($this) . $this->className . 'Debug.js"></script>',
