@@ -5,7 +5,7 @@
  *
  * #pw-summary Provides configurable srcset and sizes properties/methods for Pageimage.
  *
- * @copyright 2020 NB Communication Ltd
+ * @copyright 2021 NB Communication Ltd
  * @license Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  * @property string $sets
@@ -32,14 +32,14 @@ class PageimageSrcset extends WireData implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return [
 			'title' => 'Pageimage Srcset',
-			'version' => 110,
+			'version' => 111,
 			'summary' => 'Provides configurable srcset and sizes properties/methods for Pageimage.',
 			'author' => 'nbcommunication',
 			'href' => 'https://github.com/nbcommunication/PageimageSrcset',
 			'singular' => true,
 			'autoload' => 'template!=admin',
 			'icon' => 'picture-o',
-			'requires' => 'ProcessWire>=3.0.123',
+			'requires' => 'ProcessWire>=3.0.123,PHP>=7',
 		];
 	}
 
