@@ -1,6 +1,12 @@
 # PageimageSrcset
 Provides configurable `srcset` and `sizes` properties/methods for `Pageimage`.
 
+## Deprecated
+This module has been superseded by [`PageimageSource`](https://github.com/nbcommunication/PageimageSource), which utilities some of the in-built WebP functionality that ProcessWire has and will no longer be maintained.
+
+## Migration
+`PageimageSource` is a simplified version of `PageimageSrcset` with a different approach to rendering. Most of the features of the old module have been removed. If you were just using `$image->srcset()`, migration should be possible, as this functionality is essentially the same albeit with some improvements to image variation generation.
+
 ## Overview
 
 The main purpose of this module is to make srcset implementation as simple as possible in your template code. It does not handle images rendered in CKEditor or similar fields.
